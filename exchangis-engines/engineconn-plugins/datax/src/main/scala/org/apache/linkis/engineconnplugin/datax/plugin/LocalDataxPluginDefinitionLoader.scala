@@ -11,6 +11,7 @@ import org.apache.linkis.engineconnplugin.datax.plugin.LocalDataxPluginDefinitio
 import org.apache.linkis.manager.engineplugin.common.launch.process.Environment
 
 import java.io.File
+import java.nio.file.Paths
 import java.util
 import java.util.Base64
 /**
@@ -45,6 +46,24 @@ class LocalDataxPluginDefinitionLoader extends DataxPluginDefinitionLoader with 
         }
       case _ =>
     }
+    val EXCHANGIS_HOME : String = CommonVars("EXCHANGIS_HOME").getValue
+    if(plugins.isEmpty && StringUtils.isNotBlank(EXCHANGIS_HOME) && new File(EXCHANGIS_HOME).exists()){
+      val pluginResources = new util.ArrayList[PluginResource]()
+      val pluginDir = Paths.get(EXCHANGIS_HOME, "engine", "datax", "plugin").toFile
+      pluginDir.listFiles().foreach(child => {
+        child.listFiles(item => item.isDirectory).foreach(item => {
+          val resource = new PluginResource()
+          resource.setName(item.getName)
+          resource.setPath(Paths.get(child.getName,item.getName).toString)
+          resource.setType(item.getName)
+          resource.setCreator("hadoop")
+          pluginResources.add(resource)
+        })
+      })
+      Option(pluginResources).foreach(resources => resources.forEach(
+        resource => Option(convertPluginResourceToDefine(pluginDefineSet, resource, pluginDir.getAbsolutePath))
+          .foreach(definition => plugins.add(definition))))
+    }
     plugins
   }
 
@@ -54,7 +73,8 @@ class LocalDataxPluginDefinitionLoader extends DataxPluginDefinitionLoader with 
       case "." => null
       case _ =>
         // Search and load the resource definition at work directory
-        val resLocalFile = new File(workDir, new File(resource.getPath).getName)
+        val plugFile = new File(workDir, new File(resource.getPath).getName)
+        val resLocalFile: File = if (plugFile.exists())  plugFile else new File(workDir, resource.getPath)
         if (resLocalFile.isDirectory) {
           val pluginConf: Configuration = Configuration.from(new File(resLocalFile.getPath, PLUGIN_JSON_NAME))
           val pluginName: String = pluginConf.getString(PLUGIN_NAME)

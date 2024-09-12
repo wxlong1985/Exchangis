@@ -161,7 +161,7 @@ install_modules(){
   LOG INFO "\033[1m ####### Start To Install project ######\033[0m"
   echo ""
     LOG INFO "\033[1m Prepare properties file ${MODULE_DEFAULT_PREFIX}server${MODULE_DEFAULT_SUFFIX}.properties ......\033[0m"
-    cp -f ${EXCHNGIS_HOME_PATH}/config/dss-exchangis-server.properties ${EXCHNGIS_HOME_PATH}/config/${MODULE_DEFAULT_PREFIX}server${MODULE_DEFAULT_SUFFIX}.properties
+    cp -f ${EXCHANGIS_HOME}/config/dss-exchangis-server.properties ${EXCHANGIS_HOME}/config/${MODULE_DEFAULT_PREFIX}server${MODULE_DEFAULT_SUFFIX}.properties
     if [ ${FORCE_INSTALL} == false ]; then
         LOG INFO "\033[1m Install project ......\033[0m"
         init_database

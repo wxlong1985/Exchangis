@@ -27,6 +27,11 @@
     </properties>
     <dependencies>
         <dependency>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libfb303</artifactId>
+            <version>0.9.3</version>
+        </dependency>
+        <dependency>
             <groupId>com.webank.wedatasphere.exchangis</groupId>
             <artifactId>datax-core</artifactId>
             <version>${datax.engine.version}</version>

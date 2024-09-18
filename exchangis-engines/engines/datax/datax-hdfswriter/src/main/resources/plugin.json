@@ -1,6 +1,6 @@
 {
   "name": "hdfswriter",
-  "class": "com.alibaba.datax.plugin.writer.hdfswriter.HdfsWriter",
+  "class": "com.alibaba.datax.plugin.writer.hdfswriter.HdfsWithPaimonWriter",
   "description": "useScene: prod. mechanism: via FileSystem connect HDFS write data concurrent.",
   "developer": "alibaba"
 }

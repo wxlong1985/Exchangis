@@ -204,7 +204,7 @@ public class HdfsWithPaimonReader extends HdfsReader {
          */
         private boolean isPaimonDir() throws IOException {
             List<String> dirNames = Arrays.stream(this.fileSystem.listStatus(new Path(sourceFile))).filter(item -> item.isDirectory() && !item.getPath().getName().startsWith(".")).map(item -> item.getPath().getName()).collect(Collectors.toList());
-            return dirNames.contains("manifest") && dirNames.contains("schema") && dirNames.contains("snapshot") && dirNames.size() == 4;
+            return dirNames.contains("manifest") && dirNames.contains("schema") && dirNames.contains("snapshot") && dirNames.size() >= 4;
         }
 
         @Override

@@ -10,8 +10,12 @@ cd /home/hadoop/IdeaProjects/Exchangis
 #find $LINKIS_HOME/../ -name exchangis-job-server-1.1.2.jar  -print -exec  cp exchangis-job/exchangis-job-server/target/exchangis-job-server-1.1.2.jar  {} \;
 
 #exchangis-engines/engines/datax/datax-hdfsreader
-mvn -Dmaven.test.skip=true package -pl exchangis-engines/engines/datax/datax-hdfsreader
-find $LINKIS_HOME/../ -name datax-hdfsreader-3.0.0-Plus-2.jar  -print -exec  cp exchangis-engines/engines/datax/datax-hdfsreader/target/datax-hdfsreader-3.0.0-Plus-2.jar  {} \;
+#mvn -Dmaven.test.skip=true package -pl exchangis-engines/engines/datax/datax-hdfsreader
+#find $LINKIS_HOME/../ -name datax-hdfsreader-3.0.0-Plus-2.jar  -print -exec  cp exchangis-engines/engines/datax/datax-hdfsreader/target/datax-hdfsreader-3.0.0-Plus-2.jar  {} \;
+
+#exchangis-engines/engines/datax/datax-hdfswriter
+mvn -Dmaven.test.skip=true package -pl exchangis-engines/engines/datax/datax-hdfswriter
+find $LINKIS_HOME/../ -name datax-hdfswriter-3.0.0-Plus-2.jar  -print -exec  cp exchangis-engines/engines/datax/datax-hdfswriter/target/datax-hdfswriter-3.0.0-Plus-2.jar  {} \;
 
 
 cd $EXCHANGIS_HOME

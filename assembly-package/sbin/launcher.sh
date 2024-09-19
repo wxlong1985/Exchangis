@@ -227,7 +227,7 @@ launcher_stop(){
     fi
     case "`uname`" in
       CYCGWIN*) taskkill /PID "${p}" ;;
-      *) kill -SIGTERM "${p}" ;;
+      *) kill -15 "${p}" ;;
     esac
     LOG INFO "Launcher: waiting [ $1 ] to stop complete ..."
     wait_for_stop 20 $1 $2

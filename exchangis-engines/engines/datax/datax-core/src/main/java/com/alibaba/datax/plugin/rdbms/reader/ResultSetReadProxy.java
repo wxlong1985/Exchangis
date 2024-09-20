@@ -54,6 +54,8 @@ public class ResultSetReadProxy {
                     case Types.SMALLINT:
                     case Types.TINYINT:
                     case Types.INTEGER:
+                        record.addColumn(new IntegerColumn(rs.getString(i)));
+                        break;
                     case Types.BIGINT:
                         record.addColumn(new LongColumn(rs.getString(i)));
                         break;

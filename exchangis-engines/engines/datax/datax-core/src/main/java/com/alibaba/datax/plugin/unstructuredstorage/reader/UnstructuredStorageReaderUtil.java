@@ -25,7 +25,6 @@ import java.io.*;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.DateFormat;
 import java.util.*;
-import java.util.function.Supplier;
 
 public class UnstructuredStorageReaderUtil {
     private static final Logger LOG = LoggerFactory
@@ -335,6 +334,15 @@ public class UnstructuredStorageReaderUtil {
                         case STRING:
                             columnGenerated = new StringColumn(columnValue);
                             break;
+                        case INT:
+                            try {
+                                columnGenerated = new IntegerColumn(columnValue);
+                            } catch (Exception e) {
+                                throw new IllegalArgumentException(String.format(
+                                        "类型转换错误, 无法将[%s] 转换为[%s]", columnValue,
+                                        "LONG"));
+                            }
+                            break;
                         case LONG:
                             try {
                                 columnGenerated = new LongColumn(columnValue);
@@ -437,7 +445,7 @@ public class UnstructuredStorageReaderUtil {
     }
 
     private enum Type {
-        STRING, LONG, BOOLEAN, DOUBLE, DATE,;
+        STRING, LONG,INT, BOOLEAN, DOUBLE, DATE,;
     }
 
     /**

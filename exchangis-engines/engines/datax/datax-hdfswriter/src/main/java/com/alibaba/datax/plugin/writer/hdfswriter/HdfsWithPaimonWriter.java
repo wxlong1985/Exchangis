@@ -189,7 +189,8 @@ public class HdfsWithPaimonWriter extends Writer {
                                         row.setField(index, Integer.valueOf(rowData));
                                         break;
                                     case BIGINT:
-                                        row.setField(index, column.asBigInteger());
+                                    case LONG:
+                                        row.setField(index, column.asLong());
                                         break;
                                     case FLOAT:
                                         row.setField(index, Float.valueOf(rowData));

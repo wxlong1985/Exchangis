@@ -610,6 +610,15 @@ public class HdfsReaderUtil {
                         case STRING:
                             columnGenerated = new StringColumn(columnValue);
                             break;
+                        case INT:
+                            try {
+                                columnGenerated = new IntegerColumn(columnValue);
+                            } catch (Exception e) {
+                                throw new IllegalArgumentException(String.format(
+                                        "类型转换错误, 无法将[%s] 转换为[%s]", columnValue,
+                                        "INT"));
+                            }
+                            break;
                         case LONG:
                             try {
                                 columnGenerated = new LongColumn(columnValue);
@@ -720,7 +729,7 @@ public class HdfsReaderUtil {
     }
 
     private enum Type {
-        STRING, LONG, BOOLEAN, DOUBLE, DATE,
+        STRING, LONG, INT, BOOLEAN, DOUBLE, DATE,
     }
 
     public boolean checkHdfsFileType(String filepath, String specifiedFileType) {

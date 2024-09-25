@@ -660,6 +660,9 @@ public class HdfsWriterUtil {
                     case TINYINT:
                         objectInspector = ObjectInspectorFactory.getReflectionObjectInspector(Byte.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
                         break;
+                    case BOOL:
+                        objectInspector = ObjectInspectorFactory.getReflectionObjectInspector(Boolean.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
+                        break;
                     case SMALLINT:
                         objectInspector = ObjectInspectorFactory.getReflectionObjectInspector(Short.class, ObjectInspectorFactory.ObjectInspectorOptions.JAVA);
                         break;
@@ -752,6 +755,9 @@ public class HdfsWriterUtil {
                         switch (columnType) {
                             case TINYINT:
                                 recordList.add(Byte.valueOf(rowData));
+                                break;
+                            case BOOL:
+                                recordList.add(Boolean.valueOf(rowData));
                                 break;
                             case SMALLINT:
                                 recordList.add(Short.valueOf(rowData));

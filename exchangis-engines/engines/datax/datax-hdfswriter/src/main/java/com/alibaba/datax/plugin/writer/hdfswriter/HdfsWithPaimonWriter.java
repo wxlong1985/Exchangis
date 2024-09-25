@@ -8,7 +8,6 @@ import com.alibaba.datax.common.spi.Writer;
 import com.alibaba.datax.common.util.Configuration;
 import com.google.common.collect.Lists;
 import com.webank.wedatasphere.exchangis.datax.core.transport.stream.ChannelInput;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang3.reflect.FieldUtils;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -18,7 +17,7 @@ import org.apache.paimon.catalog.CatalogContext;
 import org.apache.paimon.catalog.Identifier;
 import org.apache.paimon.data.BinaryString;
 import org.apache.paimon.data.GenericRow;
-import org.apache.paimon.disk.IOManager;
+import org.apache.paimon.data.Timestamp;
 import org.apache.paimon.fs.FileIO;
 import org.apache.paimon.hive.HiveCatalog;
 import org.apache.paimon.options.CatalogOptions;
@@ -27,10 +26,10 @@ import org.apache.paimon.schema.Schema;
 import org.apache.paimon.schema.TableSchema;
 import org.apache.paimon.table.FileStoreTable;
 import org.apache.paimon.table.Table;
-import org.apache.paimon.table.sink.BatchTableCommit;
-import org.apache.paimon.table.sink.BatchTableWrite;
-import org.apache.paimon.table.sink.BatchWriteBuilder;
 import org.apache.paimon.table.sink.CommitMessage;
+import org.apache.paimon.table.sink.StreamTableCommit;
+import org.apache.paimon.table.sink.StreamTableWrite;
+import org.apache.paimon.table.sink.StreamWriteBuilder;
 import org.apache.paimon.utils.HadoopUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,6 +37,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 
@@ -52,7 +52,7 @@ public class HdfsWithPaimonWriter extends Writer {
      */
     static boolean isPaimonDir(FileSystem fileSystem, String sourceFile) throws IOException {
         List<String> dirNames = Arrays.stream(fileSystem.listStatus(new Path(sourceFile))).filter(item -> item.isDirectory() && !item.getPath().getName().startsWith(".")).map(item -> item.getPath().getName()).collect(Collectors.toList());
-        return dirNames.contains("manifest") && dirNames.contains("schema") && dirNames.contains("snapshot") && dirNames.size() >= 4;
+        return dirNames.contains("schema");
     }
 
 
@@ -166,15 +166,24 @@ public class HdfsWithPaimonWriter extends Writer {
                 if (isPaimonDir(this.writerUtil.fileSystem, path)) {
                     Record record = null;
                     Table table = table(this.writerSliceConfig);
-                    BatchWriteBuilder batchWriteBuilder = table.newBatchWriteBuilder();
-                    BatchTableWrite batchTableWrite = batchWriteBuilder.newWrite();
-                    batchTableWrite.withIOManager(IOManager.create(FileUtils.getTempDirectoryPath()));
+                    StreamWriteBuilder writeBuilder = table.newStreamWriteBuilder();
+                    // 2. Write records in distributed tasks
+                    StreamTableWrite streamTableWrite = writeBuilder.newWrite();
+                    // commitIdentifier like Flink checkpointId
+                    long commitIdentifier = 0;
+//                    BatchWriteBuilder batchWriteBuilder = table.newBatchWriteBuilder();
+//                    BatchTableWrite batchTableWrite = batchWriteBuilder.newWrite();
+//                    batchTableWrite.withIOManager(IOManager.create(FileUtils.getTempDirectoryPath()));
+
                     int i = 1;
                     List<Configuration> columns = this.writerSliceConfig.getListConfiguration(Key.COLUMN);
                     while ((record = lineReceiver.getFromReader()) != null) {
                         GenericRow row = new GenericRow(record.getColumns().size());
                         for (int index = 0; index < columns.size(); index++) {
                             Column column = record.getColumns().get(index);
+                            if(Objects.isNull(column.getRawData())){
+                                continue;
+                            }
                             String rowData = column.getRawData().toString();
                             SupportHiveDataType columnType = SupportHiveDataType.valueOf(column.getType().name().toUpperCase());
                             try {
@@ -206,13 +215,14 @@ public class HdfsWithPaimonWriter extends Writer {
                                         row.setField(index, BinaryString.fromString(column.asString()));
                                         break;
                                     case BOOLEAN:
+                                    case BOOL:
                                         row.setField(index, column.asBoolean());
                                         break;
                                     case DATE:
-                                        row.setField(index, new java.sql.Date(column.asDate().getTime()));
+                                        row.setField(index, Timestamp.fromEpochMillis(column.asDate().getTime()));
                                         break;
                                     case TIMESTAMP:
-                                        row.setField(index, new java.sql.Timestamp(column.asDate().getTime()));
+                                        row.setField(index, Timestamp.fromEpochMillis(column.asDate().getTime()));
                                         break;
                                     default:
                                         throw DataXException
@@ -224,6 +234,7 @@ public class HdfsWithPaimonWriter extends Writer {
                                                                 columns.get(index).getString(Key.TYPE)));
                                 }
                             } catch (Exception e) {
+                                LOG.error("Transfer ERROR",e);
                                 // warn: 此处认为脏数据
                                 String message = String.format(
                                         "字段类型转换错误：你目标字段为[%s]类型，实际字段值为[%s].",
@@ -233,19 +244,24 @@ public class HdfsWithPaimonWriter extends Writer {
                             }
 
                         }
-                        batchTableWrite.write(row);
+                        streamTableWrite.write(row);
 
-                        if ((i++) % 200 == 0) {
-                            List<CommitMessage> messages = batchTableWrite.prepareCommit();
-                            BatchTableCommit commit = batchWriteBuilder.newCommit();
-                            commit.commit(messages);
-                        }
+//                        if ((i++) % 200 == 0) {
+//                            List<CommitMessage> messages = streamTableWrite.prepareCommit(false, commitIdentifier);
+//                            commitIdentifier++;
+//                            // 3. Collect all CommitMessages to a global node and commit
+//                            StreamTableCommit commit = writeBuilder.newCommit();
+//                            commit.commit(commitIdentifier, messages);
+//                        }
                     }
-                    List<CommitMessage> commitMessages = batchTableWrite.prepareCommit();
-                    if (!commitMessages.isEmpty()) {
-                        BatchTableCommit commit = batchWriteBuilder.newCommit();
-                        commit.commit(commitMessages);
+                    List<CommitMessage> messages = streamTableWrite.prepareCommit(false, commitIdentifier);
+                    commitIdentifier++;
+                    if(!messages.isEmpty()){
+                        // 3. Collect all CommitMessages to a global node and commit
+                        StreamTableCommit commit = writeBuilder.newCommit();
+                        commit.commit(commitIdentifier, messages);
                     }
+                    streamTableWrite.close();
                 } else {
                     super.startWrite(lineReceiver);
                 }
@@ -262,5 +278,6 @@ public class HdfsWithPaimonWriter extends Writer {
         }
 
     }
+
 
 }
